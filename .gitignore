@@ -1,0 +1,7 @@
+.env
+.vscode/
+uploads/
+assets/uploads/
+*.log
+.DS_Store
+Thumbs.db
