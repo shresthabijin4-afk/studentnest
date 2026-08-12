@@ -12,8 +12,8 @@
     --border: #e5e7eb;
     --background: #f5f7fb;
     --white: #ffffff;
-    --danger-bg: #fef2f2;
-    --danger-text: #b91c1c;
+    --error-bg: #fef2f2;
+    --error-text: #b91c1c;
     --success-bg: #ecfdf5;
     --success-text: #047857;
 }
@@ -24,23 +24,25 @@ body {
     color: var(--text);
 }
 
-.auth-page {
+.page-container {
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 30px 15px;
+    padding: 40px 20px;
 }
 
-.auth-card {
+.register-card {
     width: 100%;
     max-width: 760px;
+    padding: 40px;
     background: var(--white);
     border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 38px;
-    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
 }
+
+/* Brand */
 
 .brand {
     display: flex;
@@ -53,8 +55,8 @@ body {
     width: 52px;
     height: 52px;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     background: #eff6ff;
     border-radius: 14px;
     font-size: 25px;
@@ -62,7 +64,7 @@ body {
 
 .brand h1 {
     font-size: 25px;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
 }
 
 .brand p {
@@ -70,36 +72,49 @@ body {
     font-size: 13px;
 }
 
-.form-header {
-    margin-bottom: 24px;
+
+
+.form-heading {
+    margin-bottom: 25px;
 }
 
-.form-header h2 {
-    font-size: 29px;
-    margin-bottom: 7px;
+.form-heading h2 {
+    font-size: 30px;
+    margin-bottom: 8px;
 }
 
-.form-header p {
+.form-heading p {
     color: var(--muted);
     line-height: 1.5;
 }
 
-.alert {
+
+
+.message {
     padding: 13px 15px;
     border-radius: 10px;
     margin-bottom: 20px;
     font-size: 14px;
 }
 
-.alert.error {
-    background: var(--danger-bg);
-    color: var(--danger-text);
+.message.error {
+    background: var(--error-bg);
+    color: var(--error-text);
 }
 
-.alert.success {
+.message.success {
     background: var(--success-bg);
     color: var(--success-text);
 }
+
+.message.success a {
+    display: inline-block;
+    margin-left: 8px;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+
 
 .form-group {
     margin-bottom: 18px;
@@ -107,9 +122,9 @@ body {
 
 .form-group label {
     display: block;
+    margin-bottom: 8px;
     font-size: 14px;
     font-weight: 600;
-    margin-bottom: 8px;
 }
 
 .form-group input {
@@ -117,8 +132,8 @@ body {
     padding: 13px 14px;
     border: 1px solid var(--border);
     border-radius: 10px;
-    outline: none;
     font-size: 14px;
+    outline: none;
     transition: 0.2s ease;
 }
 
@@ -127,51 +142,67 @@ body {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-.role-options {
+
+
+.role-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
 }
 
-.role-card {
+.role-option {
+    cursor: pointer;
+}
+
+.role-option input {
+    display: none;
+}
+
+.role-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 15px;
-    cursor: pointer;
     transition: 0.2s ease;
 }
 
-.role-card:hover {
+.role-option:hover .role-box {
     border-color: var(--primary);
     background: #f8fbff;
 }
 
-.role-card input {
-    margin-right: 8px;
+.role-option input:checked + .role-box {
+    border-color: var(--primary);
+    background: #eff6ff;
 }
 
-.role-content {
-    display: inline-flex;
-    flex-direction: column;
-    gap: 5px;
+.role-icon {
+    font-size: 24px;
 }
 
-.role-content strong {
-    font-size: 14px;
+.role-box strong {
+    display: block;
+    margin-bottom: 3px;
 }
 
-.role-content small {
+.role-box small {
     color: var(--muted);
     font-size: 12px;
 }
 
-.form-row {
+
+
+.password-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
 }
 
-.submit-btn {
+
+
+.primary-btn {
     width: 100%;
     padding: 14px;
     border: none;
@@ -184,35 +215,39 @@ body {
     transition: 0.2s ease;
 }
 
-.submit-btn:hover {
+.primary-btn:hover {
     background: var(--primary-dark);
 }
 
-.form-footer {
+
+
+.bottom-text {
+    margin-top: 22px;
     text-align: center;
-    margin-top: 20px;
     color: var(--muted);
     font-size: 14px;
 }
 
-.form-footer a {
+.bottom-text a {
     color: var(--primary);
     text-decoration: none;
     font-weight: 600;
 }
 
+
+
 @media (max-width: 650px) {
 
-    .auth-card {
+    .register-card {
         padding: 25px 20px;
     }
 
-    .form-row,
-    .role-options {
+    .role-container,
+    .password-row {
         grid-template-columns: 1fr;
     }
 
-    .form-header h2 {
+    .form-heading h2 {
         font-size: 24px;
     }
 }
