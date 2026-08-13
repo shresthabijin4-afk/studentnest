@@ -1,6 +1,9 @@
 <?php
 
+session_start();
+
 require_once __DIR__ . "/config/database.php";
+require_once __DIR__ . "/config/mail.php";
 
 $name = "";
 $email = "";
@@ -20,7 +23,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $password = $_POST["password"] ?? "";
     $confirm_password = $_POST["confirm_password"] ?? "";
 
-    // Validation
     if ($name === "" || $email === "" || $password === "" || $confirm_password === "") {
 
         $error = "Please fill in all required fields.";
@@ -43,9 +45,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     } else {
 
-        // Check existing email
         $check = $conn->prepare(
-            "SELECT id FROM users WHERE email = ? LIMIT 1"
+            "SELECT id, email_verified
+             FROM users
+             WHERE email = ?
+             LIMIT 1"
         );
 
         $check->bind_param("s", $email);
@@ -55,47 +59,141 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         if ($result->num_rows > 0) {
 
-            $error = "An account with this email already exists.";
+            $existing = $result->fetch_assoc();
+
+            if ((int)$existing["email_verified"] === 0) {
+                $error = "This email is already registered but not verified.";
+            } else {
+                $error = "An account with this email already exists.";
+            }
 
         } else {
 
-            // Hash password
             $hashed_password = password_hash(
                 $password,
                 PASSWORD_DEFAULT
             );
 
-            // Insert user
-            $stmt = $conn->prepare(
-                "INSERT INTO users
-                (name, email, password, role, phone)
-                VALUES (?, ?, ?, ?, ?)"
-            );
+            $conn->begin_transaction();
 
-            $stmt->bind_param(
-                "sssss",
-                $name,
-                $email,
-                $hashed_password,
-                $role,
-                $phone
-            );
+            try {
 
-            if ($stmt->execute()) {
+                $stmt = $conn->prepare(
+                    "INSERT INTO users
+                    (name, email, password, role, phone, email_verified, phone_verified)
+                    VALUES (?, ?, ?, ?, ?, 0, 0)"
+                );
 
-                $success = "Account created successfully. You can now log in.";
+                $stmt->bind_param(
+                    "sssss",
+                    $name,
+                    $email,
+                    $hashed_password,
+                    $role,
+                    $phone
+                );
 
-                $name = "";
-                $email = "";
-                $phone = "";
-                $role = "student";
+                if (!$stmt->execute()) {
+                    throw new Exception("Unable to create account.");
+                }
 
-            } else {
+                $user_id = $stmt->insert_id;
 
-                $error = "Something went wrong. Please try again.";
+                $stmt->close();
+
+                $code = (string) random_int(100000, 999999);
+                $code_hash = password_hash($code, PASSWORD_DEFAULT);
+                $expires_at = date("Y-m-d H:i:s", time() + 600);
+
+                $code_stmt = $conn->prepare(
+                    "INSERT INTO verification_codes
+                    (user_id, type, code_hash, expires_at)
+                    VALUES (?, 'email', ?, ?)"
+                );
+
+                $code_stmt->bind_param(
+                    "iss",
+                    $user_id,
+                    $code_hash,
+                    $expires_at
+                );
+
+                if (!$code_stmt->execute()) {
+                    throw new Exception("Unable to create verification code.");
+                }
+
+                $code_stmt->close();
+
+                $mail = createMailer();
+
+                $mail->addAddress(
+                    $email,
+                    $name
+                );
+
+                $mail->Subject = "StudentNest Email Verification";
+
+                $mail->Body = '
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px; color: #172033;">
+                        <div style="text-align: center; margin-bottom: 25px;">
+                            <h1 style="color: #2563eb; margin-bottom: 5px;">StudentNest</h1>
+                            <p style="color: #6b7280;">Find a place that feels like home.</p>
+                        </div>
+
+                        <h2 style="margin-bottom: 10px;">Verify your email</h2>
+
+                        <p>Hello ' . htmlspecialchars($name) . ',</p>
+
+                        <p>
+                            Thank you for creating your StudentNest account.
+                            Use the verification code below to verify your email address.
+                        </p>
+
+                        <div style="text-align: center; margin: 30px 0;">
+                            <span style="
+                                display: inline-block;
+                                padding: 15px 25px;
+                                background: #eff6ff;
+                                color: #2563eb;
+                                font-size: 30px;
+                                font-weight: bold;
+                                letter-spacing: 8px;
+                                border-radius: 12px;
+                            ">
+                                ' . $code . '
+                            </span>
+                        </div>
+
+                        <p>
+                            This code will expire in <strong>10 minutes</strong>.
+                        </p>
+
+                        <p style="color: #6b7280; font-size: 13px; margin-top: 30px;">
+                            If you did not create this account, you can safely ignore this email.
+                        </p>
+                    </div>
+                ';
+
+                $mail->AltBody =
+                    "Your StudentNest verification code is: " . $code .
+                    ". This code expires in 10 minutes.";
+
+                $mail->send();
+
+                $conn->commit();
+
+                $_SESSION["verification_user_id"] = $user_id;
+
+                header("Location: verify-email.php");
+                exit;
+
+            } catch (Throwable $e) {
+
+                $conn->rollback();
+
+                $error = "Registration could not be completed. Please try again.";
+
             }
-
-            $stmt->close();
         }
 
         $check->close();
@@ -131,7 +229,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     <div class="register-card">
 
-     
         <div class="brand">
 
             <div class="brand-icon">
@@ -139,14 +236,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div>
+
                 <h1>StudentNest</h1>
-                <p>Find a place that feels like home.</p>
+
+                <p>
+                    Find a place that feels like home.
+                </p>
+
             </div>
 
         </div>
 
 
-     
         <div class="form-heading">
 
             <h2>Create your account</h2>
@@ -158,7 +259,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </div>
 
 
-      
         <?php if ($error !== ""): ?>
 
             <div class="message error">
@@ -168,17 +268,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <?php endif; ?>
 
 
-    
         <?php if ($success !== ""): ?>
 
             <div class="message success">
-
                 <?= htmlspecialchars($success) ?>
-
-                <a href="login.php">
-                    Login now
-                </a>
-
             </div>
 
         <?php endif; ?>
@@ -186,7 +279,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         <form method="POST" action="">
 
-           
             <div class="form-group">
 
                 <label for="name">
@@ -205,7 +297,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
 
-          
             <div class="form-group">
 
                 <label for="email">
@@ -224,7 +315,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
 
-       
             <div class="form-group">
 
                 <label for="phone">
@@ -266,10 +356,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             </span>
 
                             <span>
-                                <strong>Student</strong>
+
+                                <strong>
+                                    Student
+                                </strong>
+
                                 <small>
                                     Find suitable accommodation
                                 </small>
+
                             </span>
 
                         </span>
@@ -293,10 +388,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             </span>
 
                             <span>
-                                <strong>Room Owner</strong>
+
+                                <strong>
+                                    Room Owner
+                                </strong>
+
                                 <small>
                                     List and manage rooms
                                 </small>
+
                             </span>
 
                         </span>
@@ -346,7 +446,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
 
-    
             <button
                 type="submit"
                 class="primary-btn"
@@ -357,7 +456,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </form>
 
 
-       
         <div class="bottom-text">
 
             Already have an account?

@@ -23,14 +23,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } else {
 
         $stmt = $conn->prepare(
-            "SELECT id, name, email, password, role
+            "SELECT id, name, email, password, role, email_verified, phone_verified
              FROM users
              WHERE email = ?
              LIMIT 1"
         );
 
         $stmt->bind_param("s", $email);
-
         $stmt->execute();
 
         $result = $stmt->get_result();
@@ -40,6 +39,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $user = $result->fetch_assoc();
 
             if (password_verify($password, $user["password"])) {
+
+                if ((int)$user["email_verified"] !== 1) {
+
+                    $_SESSION["verification_user_id"] = $user["id"];
+
+                    header("Location: verify-email.php");
+                    exit;
+                }
 
                 session_regenerate_id(true);
 
@@ -111,8 +118,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     <div class="login-card">
 
-        <!-- Brand -->
-
         <div class="brand">
 
             <div class="brand-icon">
@@ -132,8 +137,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </div>
 
 
-        <!-- Heading -->
-
         <div class="login-heading">
 
             <h2>Welcome back</h2>
@@ -145,20 +148,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </div>
 
 
-        <!-- Error -->
-
         <?php if ($error !== ""): ?>
 
             <div class="message error">
-
                 <?= htmlspecialchars($error) ?>
-
             </div>
 
         <?php endif; ?>
 
-
-        <!-- Login form -->
 
         <form method="POST" action="">
 
@@ -215,8 +212,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </form>
 
 
-        <!-- Social login placeholder -->
-
         <div class="divider">
 
             <span>OR</span>
@@ -224,27 +219,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </div>
 
 
-        <button
-            type="button"
-            class="social-btn"
-            disabled
-        >
-            <span>G</span>
-            Continue with Google
-        </button>
 
-
-        <button
-            type="button"
-            class="social-btn"
-            disabled
-        >
-            <span>f</span>
-            Continue with Facebook
-        </button>
-
-
-        <!-- Register -->
 
         <div class="bottom-text">
 
