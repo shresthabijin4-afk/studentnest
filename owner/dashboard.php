@@ -4,34 +4,42 @@ session_start();
 
 if (
     !isset($_SESSION["user_id"]) ||
+    !isset($_SESSION["user_role"]) ||
     $_SESSION["user_role"] !== "owner"
 ) {
     header("Location: ../login.php");
     exit;
 }
 
-require_once "../config/database.php";
+require_once __DIR__ . "/../config/database.php";
 
-$owner_id = $_SESSION["user_id"];
-$owner_name = $_SESSION["user_name"];
+if (!isset($conn) || !($conn instanceof mysqli)) {
+    die("Database connection is not available.");
+}
 
-// Count owner's rooms
+$owner_id = (int) $_SESSION["user_id"];
+$owner_name = $_SESSION["user_name"] ?? "Room Owner";
+
 $stmt = $conn->prepare(
     "SELECT COUNT(*) AS total
      FROM rooms
      WHERE owner_id = ?"
 );
 
+if (!$stmt) {
+    die("Database query failed: " . $conn->error);
+}
+
 $stmt->bind_param("i", $owner_id);
 $stmt->execute();
 
 $result = $stmt->get_result();
-$total_rooms = $result->fetch_assoc()["total"];
+$row = $result->fetch_assoc();
+
+$total_rooms = (int) ($row["total"] ?? 0);
 
 $stmt->close();
 
-
-// Count available rooms
 $stmt = $conn->prepare(
     "SELECT COUNT(*) AS total
      FROM rooms
@@ -39,11 +47,17 @@ $stmt = $conn->prepare(
      AND status = 'available'"
 );
 
+if (!$stmt) {
+    die("Database query failed: " . $conn->error);
+}
+
 $stmt->bind_param("i", $owner_id);
 $stmt->execute();
 
 $result = $stmt->get_result();
-$available_rooms = $result->fetch_assoc()["total"];
+$row = $result->fetch_assoc();
+
+$available_rooms = (int) ($row["total"] ?? 0);
 
 $stmt->close();
 
@@ -65,16 +79,14 @@ $stmt->close();
 
     <link
         rel="stylesheet"
-        href="../assets/css/owner-dashboard.css"
+        href="../assests/css/owner-dashboard.css"
     >
-
+    
 </head>
 
 <body>
 
 <div class="dashboard">
-
-    <!-- SIDEBAR -->
 
     <aside class="sidebar">
 
@@ -93,27 +105,42 @@ $stmt->close();
 
         <nav>
 
-            <a href="dashboard.php" class="nav-link active">
+            <a
+                href="dashboard.php"
+                class="nav-link active"
+            >
                 <span>⌂</span>
                 Dashboard
             </a>
 
-            <a href="add-room.php" class="nav-link">
+            <a
+                href="add-room.php"
+                class="nav-link"
+            >
                 <span>＋</span>
                 Add Room
             </a>
 
-            <a href="manage-rooms.php" class="nav-link">
+            <a
+                href="manage-rooms.php"
+                class="nav-link"
+            >
                 <span>▣</span>
                 Manage Rooms
             </a>
 
-            <a href="#" class="nav-link">
+            <a
+                href="#"
+                class="nav-link"
+            >
                 <span>✉</span>
                 Messages
             </a>
 
-            <a href="profile.php" class="nav-link">
+            <a
+                href="profile.php"
+                class="nav-link"
+            >
                 <span>◉</span>
                 My Profile
             </a>
@@ -122,16 +149,16 @@ $stmt->close();
 
         <div class="sidebar-bottom">
 
-            <a href="../logout.php" class="logout">
+            <a
+                href="../logout.php"
+                class="logout"
+            >
                 ↪ Logout
             </a>
 
         </div>
 
     </aside>
-
-
-    <!-- MAIN -->
 
     <main class="main-content">
 
@@ -150,7 +177,9 @@ $stmt->close();
             <div class="user-info">
 
                 <div class="avatar">
-                    <?= strtoupper(substr($owner_name, 0, 1)) ?>
+                    <?= htmlspecialchars(
+                        strtoupper(substr($owner_name, 0, 1))
+                    ) ?>
                 </div>
 
                 <div>
@@ -169,11 +198,7 @@ $stmt->close();
 
         </header>
 
-
         <div class="content">
-
-
-            <!-- WELCOME -->
 
             <section class="welcome-card">
 
@@ -193,14 +218,14 @@ $stmt->close();
 
                 </div>
 
-                <a href="add-room.php" class="primary-btn">
+                <a
+                    href="add-room.php"
+                    class="primary-btn"
+                >
                     + Add New Room
                 </a>
 
             </section>
-
-
-            <!-- STATS -->
 
             <section class="stats">
 
@@ -224,7 +249,6 @@ $stmt->close();
 
                 </div>
 
-
                 <div class="stat-card">
 
                     <div class="stat-icon green">
@@ -244,7 +268,6 @@ $stmt->close();
                     </div>
 
                 </div>
-
 
                 <div class="stat-card">
 
@@ -268,24 +291,30 @@ $stmt->close();
 
             </section>
 
-
-            <!-- QUICK ACTIONS -->
-
             <section>
 
                 <div class="section-heading">
 
                     <div>
-                        <span>Manage</span>
-                        <h2>Quick Actions</h2>
+
+                        <span>
+                            Manage
+                        </span>
+
+                        <h2>
+                            Quick Actions
+                        </h2>
+
                     </div>
 
                 </div>
 
-
                 <div class="quick-grid">
 
-                    <a href="add-room.php" class="quick-card">
+                    <a
+                        href="add-room.php"
+                        class="quick-card"
+                    >
 
                         <div class="quick-icon">
                             ＋
@@ -305,8 +334,10 @@ $stmt->close();
 
                     </a>
 
-
-                    <a href="manage-rooms.php" class="quick-card">
+                    <a
+                        href="manage-rooms.php"
+                        class="quick-card"
+                    >
 
                         <div class="quick-icon">
                             ▣

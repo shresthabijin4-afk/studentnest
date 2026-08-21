@@ -7,7 +7,6 @@ require_once __DIR__ . "/config/mail.php";
 
 $name = "";
 $email = "";
-$phone = "";
 $role = "student";
 
 $error = "";
@@ -17,7 +16,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $name = trim($_POST["name"] ?? "");
     $email = trim($_POST["email"] ?? "");
-    $phone = trim($_POST["phone"] ?? "");
     $role = $_POST["role"] ?? "student";
 
     $password = $_POST["password"] ?? "";
@@ -80,17 +78,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 $stmt = $conn->prepare(
                     "INSERT INTO users
-                    (name, email, password, role, phone, email_verified, phone_verified)
-                    VALUES (?, ?, ?, ?, ?, 0, 0)"
+                    (name, email, password, role, email_verified)
+                    VALUES (?, ?, ?, ?, 0)"
                 );
 
                 $stmt->bind_param(
-                    "sssss",
+                    "ssss",
                     $name,
                     $email,
                     $hashed_password,
-                    $role,
-                    $phone
+                    $role
                 );
 
                 if (!$stmt->execute()) {
@@ -192,7 +189,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $conn->rollback();
 
                 $error = "Registration could not be completed. Please try again.";
-
             }
         }
 
@@ -315,21 +311,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
 
-            <div class="form-group">
-
-                <label for="phone">
-                    Phone Number
-                </label>
-
-                <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    placeholder="Enter your phone number"
-                    value="<?= htmlspecialchars($phone) ?>"
-                >
-
-            </div>
+      
 
 
             <div class="form-group">

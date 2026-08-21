@@ -23,7 +23,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } else {
 
         $stmt = $conn->prepare(
-            "SELECT id, name, email, password, role, email_verified, phone_verified
+            "SELECT id, name, email, password, role, email_verified
              FROM users
              WHERE email = ?
              LIMIT 1"

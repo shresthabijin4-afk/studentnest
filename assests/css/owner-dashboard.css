@@ -30,8 +30,6 @@ a {
     display: flex;
 }
 
-/* Sidebar */
-
 .sidebar {
     width: 250px;
     min-height: 100vh;
@@ -39,7 +37,7 @@ a {
     left: 0;
     top: 0;
     bottom: 0;
-    background: white;
+    background: var(--white);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -59,8 +57,8 @@ a {
     border-radius: 12px;
     background: #eff6ff;
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     font-size: 22px;
 }
 
@@ -69,8 +67,10 @@ a {
 }
 
 .brand span {
-    font-size: 11px;
+    display: block;
+    margin-top: 3px;
     color: var(--muted);
+    font-size: 11px;
 }
 
 nav {
@@ -86,6 +86,13 @@ nav {
     border-radius: 9px;
     color: var(--muted);
     font-size: 14px;
+    transition: 0.2s ease;
+}
+
+.nav-link span {
+    width: 20px;
+    text-align: center;
+    font-size: 17px;
 }
 
 .nav-link:hover {
@@ -107,17 +114,16 @@ nav {
 .logout {
     display: block;
     padding: 12px 14px;
-    color: var(--muted);
     border-radius: 9px;
+    color: var(--muted);
+    font-size: 14px;
+    transition: 0.2s ease;
 }
 
 .logout:hover {
     background: #fef2f2;
     color: #dc2626;
 }
-
-
-/* Main */
 
 .main-content {
     width: calc(100% - 250px);
@@ -126,9 +132,9 @@ nav {
 
 .topbar {
     min-height: 82px;
-    background: white;
-    border-bottom: 1px solid var(--border);
     padding: 18px 35px;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -150,10 +156,14 @@ nav {
     gap: 10px;
 }
 
-.user-info div:last-child {
+.user-info > div:last-child {
     display: flex;
     flex-direction: column;
     gap: 3px;
+}
+
+.user-info strong {
+    font-size: 13px;
 }
 
 .user-info span {
@@ -164,12 +174,12 @@ nav {
 .avatar {
     width: 40px;
     height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: #dbeafe;
     color: var(--primary);
     border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     font-weight: 700;
 }
 
@@ -177,17 +187,16 @@ nav {
     padding: 35px;
 }
 
-/* Welcome */
-
 .welcome-card {
-    background: white;
+    background: var(--white);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 28px;
+    margin-bottom: 25px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    gap: 20px;
 }
 
 .welcome-card > div > span,
@@ -196,7 +205,7 @@ nav {
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .6px;
+    letter-spacing: 0.6px;
 }
 
 .welcome-card h2 {
@@ -205,24 +214,28 @@ nav {
 }
 
 .welcome-card p {
+    max-width: 650px;
     color: var(--muted);
     font-size: 13px;
+    line-height: 1.6;
 }
 
 .primary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: var(--primary);
     color: white;
     padding: 12px 17px;
     border-radius: 9px;
     font-size: 13px;
     font-weight: 600;
+    white-space: nowrap;
 }
 
 .primary-btn:hover {
     background: var(--primary-dark);
 }
-
-/* Stats */
 
 .stats {
     display: grid;
@@ -232,7 +245,7 @@ nav {
 }
 
 .stat-card {
-    background: white;
+    background: var(--white);
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 20px;
@@ -261,27 +274,23 @@ nav {
 
 .stat-card span {
     display: block;
-    font-size: 12px;
-    color: var(--muted);
     margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 12px;
 }
 
 .stat-card strong {
     font-size: 22px;
 }
 
-/* Heading */
-
 .section-heading {
     margin-bottom: 15px;
 }
 
 .section-heading h2 {
-    font-size: 21px;
     margin-top: 5px;
+    font-size: 21px;
 }
-
-/* Quick cards */
 
 .quick-grid {
     display: grid;
@@ -290,19 +299,19 @@ nav {
 }
 
 .quick-card {
-    background: white;
+    background: var(--white);
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 20px;
     display: flex;
     align-items: center;
     gap: 15px;
-    transition: .2s ease;
+    transition: 0.2s ease;
 }
 
 .quick-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(0,0,0,.06);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
 }
 
 .quick-icon {
@@ -315,21 +324,21 @@ nav {
     align-items: center;
     justify-content: center;
     font-size: 20px;
+    flex-shrink: 0;
 }
 
 .quick-card h3 {
-    font-size: 15px;
     margin-bottom: 5px;
+    font-size: 15px;
 }
 
 .quick-card p {
-    font-size: 12px;
     color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
 }
 
-/* Responsive */
-
-@media (max-width: 850px) {
+@media (max-width: 900px) {
 
     .sidebar {
         display: none;
@@ -345,10 +354,10 @@ nav {
     }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 650px) {
 
-    .topbar,
-    .welcome-card {
+    .topbar {
+        padding: 18px 20px;
         align-items: flex-start;
         flex-direction: column;
         gap: 15px;
@@ -358,8 +367,17 @@ nav {
         padding: 20px;
     }
 
+    .welcome-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
     .stats,
     .quick-grid {
         grid-template-columns: 1fr;
+    }
+
+    .primary-btn {
+        width: 100%;
     }
 }
