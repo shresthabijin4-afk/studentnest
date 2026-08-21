@@ -133,3 +133,28 @@ button:hover {
     text-decoration: none;
     font-weight: 600;
 }
+
+.resend-form {
+    margin-top: 18px;
+}
+
+.resend-text {
+    color: #6b7280;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.resend-button {
+    margin-top: 0;
+    background: #f3f4f6;
+    color: #2563eb;
+    border: 1px solid #e5e7eb;
+}
+
+.resend-button:hover {
+    background: #eff6ff;
+}
+
+.back-text {
+    margin-top: 18px;
+}
