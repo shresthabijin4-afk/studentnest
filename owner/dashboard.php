@@ -61,6 +61,23 @@ $available_rooms = (int) ($row["total"] ?? 0);
 
 $stmt->close();
 
+$stmt = $conn->prepare(
+    "SELECT COUNT(*) AS total
+     FROM messages
+     WHERE receiver_id = ?
+     AND is_read = 0"
+);
+
+$stmt->bind_param("i", $owner_id);
+$stmt->execute();
+
+$result = $stmt->get_result();
+$row = $result->fetch_assoc();
+
+$unread_messages = (int) ($row["total"] ?? 0);
+
+$stmt->close();
+
 ?>
 
 <!DOCTYPE html>
@@ -122,7 +139,7 @@ $stmt->close();
             </a>
 
             <a
-                href="manage-rooms.php"
+                href="manage-room.php"
                 class="nav-link"
             >
                 <span>▣</span>
@@ -130,7 +147,7 @@ $stmt->close();
             </a>
 
             <a
-                href="#"
+                href="messages.php"
                 class="nav-link"
             >
                 <span>✉</span>
@@ -282,7 +299,7 @@ $stmt->close();
                         </span>
 
                         <strong>
-                            0
+                            <?= $unread_messages ?>
                         </strong>
 
                     </div>
@@ -335,7 +352,7 @@ $stmt->close();
                     </a>
 
                     <a
-                        href="manage-rooms.php"
+                        href="manage-room.php"
                         class="quick-card"
                     >
 

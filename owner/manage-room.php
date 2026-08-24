@@ -2,31 +2,57 @@
 
 session_start();
 
-require_once __DIR__ . "/../config/database.php";
-
 if (
     !isset($_SESSION["user_id"]) ||
+    !isset($_SESSION["user_role"]) ||
     $_SESSION["user_role"] !== "owner"
 ) {
     header("Location: ../login.php");
     exit;
 }
 
-$owner_id = $_SESSION["user_id"];
+require_once __DIR__ . "/../config/database.php";
+
+$owner_id = (int) $_SESSION["user_id"];
+
 $success = $_GET["success"] ?? "";
 $error = $_GET["error"] ?? "";
 
 $stmt = $conn->prepare(
-    "SELECT id, title, location, rent, room_type, status, created_at
-     FROM rooms
-     WHERE owner_id = ?
-     ORDER BY created_at DESC"
+    "SELECT
+        r.id,
+        r.title,
+        r.description,
+        r.location,
+        r.rent,
+        r.room_type,
+        r.facilities,
+        r.status,
+        r.created_at,
+        (
+            SELECT ri.image_path
+            FROM room_images ri
+            WHERE ri.room_id = r.id
+            ORDER BY ri.is_primary DESC, ri.id ASC
+            LIMIT 1
+        ) AS image_path
+     FROM rooms r
+     WHERE r.owner_id = ?
+     ORDER BY r.id DESC"
 );
 
 $stmt->bind_param("i", $owner_id);
 $stmt->execute();
 
 $result = $stmt->get_result();
+
+$rooms = [];
+
+while ($row = $result->fetch_assoc()) {
+    $rooms[] = $row;
+}
+
+$stmt->close();
 
 ?>
 
@@ -44,10 +70,10 @@ $result = $stmt->get_result();
 
     <title>Manage Rooms | StudentNest</title>
 
-    <link
-        rel="stylesheet"
-        href="../assests/css/manage-room.css"
-    >
+  <link
+    rel="stylesheet"
+    href="../assests/css/manage-room.css?v=2"
+>
 
 </head>
 
@@ -58,29 +84,29 @@ $result = $stmt->get_result();
     <div class="page-header">
 
         <div>
-            <span class="eyebrow">Room Owner</span>
 
-            <h1>Manage Rooms</h1>
+            <span class="label">
+                Owner Portal
+            </span>
+
+            <h1>
+                Manage Rooms
+            </h1>
 
             <p>
-                View and manage your accommodation listings.
+                View, edit and manage your accommodation listings.
             </p>
-        </div>
-
-        <div class="header-actions">
-
-            <a href="dashboard.php" class="secondary-btn">
-                ← Dashboard
-            </a>
-
-            <a href="add-room.php" class="primary-btn">
-                + Add Room
-            </a>
 
         </div>
+
+        <a
+            href="add-room.php"
+            class="add-btn"
+        >
+            + Add New Room
+        </a>
 
     </div>
-
 
     <?php if ($success !== ""): ?>
 
@@ -90,7 +116,6 @@ $result = $stmt->get_result();
 
     <?php endif; ?>
 
-
     <?php if ($error !== ""): ?>
 
         <div class="message error">
@@ -99,160 +124,137 @@ $result = $stmt->get_result();
 
     <?php endif; ?>
 
+    <?php if (count($rooms) === 0): ?>
 
-    <div class="rooms-container">
+        <div class="empty-state">
 
-        <?php if ($result->num_rows > 0): ?>
-
-            <div class="table-wrapper">
-
-                <table>
-
-                    <thead>
-
-                    <tr>
-                        <th>Room</th>
-                        <th>Location</th>
-                        <th>Rent</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>Added</th>
-                        <th>Actions</th>
-                    </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                    <?php while ($room = $result->fetch_assoc()): ?>
-
-                        <tr>
-
-                            <td>
-
-                                <div class="room-title">
-
-                                    <div class="room-placeholder">
-                                        🏠
-                                    </div>
-
-                                    <div>
-
-                                        <strong>
-                                            <?= htmlspecialchars($room["title"]) ?>
-                                        </strong>
-
-                                    </div>
-
-                                </div>
-
-                            </td>
-
-
-                            <td>
-                                <?= htmlspecialchars($room["location"]) ?>
-                            </td>
-
-
-                            <td>
-                                Rs. <?= number_format((float)$room["rent"], 2) ?>
-                            </td>
-
-
-                            <td>
-                                <?= htmlspecialchars(ucfirst($room["room_type"])) ?>
-                            </td>
-
-
-                            <td>
-
-                                <?php if ($room["status"] === "available"): ?>
-
-                                    <span class="status available">
-                                        Available
-                                    </span>
-
-                                <?php else: ?>
-
-                                    <span class="status unavailable">
-                                        Unavailable
-                                    </span>
-
-                                <?php endif; ?>
-
-                            </td>
-
-
-                            <td>
-                                <?= date("d M Y", strtotime($room["created_at"])) ?>
-                            </td>
-
-
-                            <td>
-
-                                <div class="actions">
-
-                                    <a
-                                        href="edit-room.php?id=<?= (int)$room["id"] ?>"
-                                        class="action-btn edit"
-                                    >
-                                        Edit
-                                    </a>
-
-                                    <a
-                                        href="delete-room.php?id=<?= (int)$room["id"] ?>"
-                                        class="action-btn delete"
-                                        onclick="return confirm('Are you sure you want to delete this room listing?');"
-                                    >
-                                        Delete
-                                    </a>
-
-                                </div>
-
-                            </td>
-
-                        </tr>
-
-                    <?php endwhile; ?>
-
-                    </tbody>
-
-                </table>
-
+            <div class="empty-icon">
+                🏠
             </div>
 
-        <?php else: ?>
+            <h2>
+                No rooms listed yet
+            </h2>
 
-            <div class="empty-state">
+            <p>
+                Add your first room to start receiving accommodation requests.
+            </p>
 
-                <div class="empty-icon">
-                    🏠
+            <a
+                href="add-room.php"
+                class="add-btn"
+            >
+                + Add Your First Room
+            </a>
+
+        </div>
+
+    <?php else: ?>
+
+        <div class="rooms-grid">
+
+            <?php foreach ($rooms as $room): ?>
+
+                <div class="room-card">
+
+                    <div class="room-image">
+
+                        <?php if (!empty($room["image_path"])): ?>
+
+                            <img
+                                src="../<?= htmlspecialchars($room["image_path"]) ?>"
+                                alt="<?= htmlspecialchars($room["title"]) ?>"
+                            >
+
+                        <?php else: ?>
+
+                            <div class="no-image">
+                                No Image
+                            </div>
+
+                        <?php endif; ?>
+
+                        <span
+                            class="status <?= $room["status"] === "available" ? "available" : "unavailable" ?>"
+                        >
+                            <?= htmlspecialchars(ucfirst($room["status"])) ?>
+                        </span>
+
+                    </div>
+
+                    <div class="room-content">
+
+                        <h2>
+                            <?= htmlspecialchars($room["title"]) ?>
+                        </h2>
+
+                        <p class="location">
+                            <?= htmlspecialchars($room["location"]) ?>
+                        </p>
+
+                        <div class="room-info">
+
+                            <div>
+                                <span>
+                                    Room Type
+                                </span>
+
+                                <strong>
+                                    <?= htmlspecialchars($room["room_type"]) ?>
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>
+                                    Monthly Rent
+                                </span>
+
+                                <strong>
+                                    Rs. <?= number_format((float)$room["rent"]) ?>
+                                </strong>
+                            </div>
+
+                        </div>
+
+                        <?php if (!empty($room["facilities"])): ?>
+
+                            <p class="facilities">
+                                <?= htmlspecialchars($room["facilities"]) ?>
+                            </p>
+
+                        <?php endif; ?>
+
+                        <div class="room-actions">
+
+                            <a
+                                href="edit-room.php?id=<?= (int)$room["id"] ?>"
+                                class="action-btn edit"
+                            >
+                                Edit
+                            </a>
+
+                            <a
+    href="delete-room.php?id=<?= (int)$room["id"] ?>"
+    class="action-btn delete"
+    onclick="return confirm('Are you sure you want to delete this room and all its images?')"
+>
+    Delete
+</a>
+
+                        </div>
+
+                    </div>
+
                 </div>
 
-                <h2>No room listings yet</h2>
+            <?php endforeach; ?>
 
-                <p>
-                    You haven't added any rooms. Create your first listing to make it visible to students.
-                </p>
+        </div>
 
-                <a href="add-room.php" class="primary-btn">
-                    + Add Your First Room
-                </a>
-
-            </div>
-
-        <?php endif; ?>
-
-    </div>
+    <?php endif; ?>
 
 </div>
 
 </body>
 
 </html>
-
-<?php
-
-$stmt->close();
-
-?>

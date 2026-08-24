@@ -203,3 +203,15 @@ body {
         text-align: center;
     }
 }
+.form-group input[type="file"] {
+    padding: 10px;
+    background: #f8fafc;
+    cursor: pointer;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 7px;
+    color: #6b7280;
+    font-size: 12px;
+}

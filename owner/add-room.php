@@ -4,6 +4,7 @@ session_start();
 
 if (
     !isset($_SESSION["user_id"]) ||
+    !isset($_SESSION["user_role"]) ||
     $_SESSION["user_role"] !== "owner"
 ) {
     header("Location: ../login.php");
@@ -24,7 +25,7 @@ $facilities = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $owner_id = $_SESSION["user_id"];
+    $owner_id = (int) $_SESSION["user_id"];
 
     $title = trim($_POST["title"] ?? "");
     $description = trim($_POST["description"] ?? "");
@@ -43,9 +44,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $error = "Please fill in all required fields.";
 
-    } elseif (!is_numeric($rent) || (float)$rent <= 0) {
+    } elseif (!is_numeric($rent) || (float) $rent <= 0) {
 
         $error = "Please enter a valid monthly rent.";
+
+    } elseif (
+        !in_array(
+            $room_type,
+            ["single", "shared", "1BHK", "2BHK", "other"],
+            true
+        )
+    ) {
+
+        $error = "Please select a valid room type.";
 
     } else {
 
@@ -55,36 +66,163 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             VALUES (?, ?, ?, ?, ?, ?, ?, 'available')"
         );
 
-        $rent_value = (float)$rent;
+        if (!$stmt) {
 
-        $stmt->bind_param(
-            "isssdss",
-            $owner_id,
-            $title,
-            $description,
-            $location,
-            $rent_value,
-            $room_type,
-            $facilities
-        );
-
-        if ($stmt->execute()) {
-
-            $success = "Room listing created successfully.";
-
-            $title = "";
-            $description = "";
-            $location = "";
-            $rent = "";
-            $room_type = "";
-            $facilities = "";
+            $error = "Unable to create room listing.";
 
         } else {
 
-            $error = "Unable to create room listing. Please try again.";
-        }
+            $rent_value = (float) $rent;
 
-        $stmt->close();
+            $stmt->bind_param(
+                "isssdss",
+                $owner_id,
+                $title,
+                $description,
+                $location,
+                $rent_value,
+                $room_type,
+                $facilities
+            );
+
+            if ($stmt->execute()) {
+
+                $room_id = $conn->insert_id;
+
+                $upload_dir = __DIR__ . "/../assets/images/rooms/";
+
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                if (
+                    isset($_FILES["images"]) &&
+                    isset($_FILES["images"]["name"]) &&
+                    !empty($_FILES["images"]["name"][0])
+                ) {
+
+                    $allowed_types = [
+                        "image/jpeg",
+                        "image/png",
+                        "image/webp"
+                    ];
+
+                    $image_count = min(
+                        count($_FILES["images"]["name"]),
+                        5
+                    );
+
+                    $uploaded_images = 0;
+
+                    for ($i = 0; $i < $image_count; $i++) {
+
+                        if (
+                            $_FILES["images"]["error"][$i]
+                            !== UPLOAD_ERR_OK
+                        ) {
+                            continue;
+                        }
+
+                        if (
+                            $_FILES["images"]["size"][$i]
+                            > 5 * 1024 * 1024
+                        ) {
+                            continue;
+                        }
+
+                        $tmp_name = $_FILES["images"]["tmp_name"][$i];
+
+                        $file_type = mime_content_type($tmp_name);
+
+                        if (
+                            !in_array(
+                                $file_type,
+                                $allowed_types,
+                                true
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        $extension = match ($file_type) {
+                            "image/jpeg" => "jpg",
+                            "image/png" => "png",
+                            "image/webp" => "webp",
+                            default => ""
+                        };
+
+                        if ($extension === "") {
+                            continue;
+                        }
+
+                        $filename =
+                            uniqid("room_", true)
+                            . "."
+                            . $extension;
+
+                        $destination =
+                            $upload_dir
+                            . $filename;
+
+                        if (
+                            move_uploaded_file(
+                                $tmp_name,
+                                $destination
+                            )
+                        ) {
+
+                            $image_path =
+                                "assets/images/rooms/"
+                                . $filename;
+
+                            $is_primary =
+                                ($uploaded_images === 0)
+                                ? 1
+                                : 0;
+
+                            $image_stmt = $conn->prepare(
+                                "INSERT INTO room_images
+                                (room_id, image_path, is_primary)
+                                VALUES (?, ?, ?)"
+                            );
+
+                            if ($image_stmt) {
+
+                                $image_stmt->bind_param(
+                                    "isi",
+                                    $room_id,
+                                    $image_path,
+                                    $is_primary
+                                );
+
+                                $image_stmt->execute();
+
+                                $image_stmt->close();
+
+                                $uploaded_images++;
+                            }
+                        }
+                    }
+                }
+
+                $success =
+                    "Room listing created successfully.";
+
+                $title = "";
+                $description = "";
+                $location = "";
+                $rent = "";
+                $room_type = "";
+                $facilities = "";
+
+            } else {
+
+                $error =
+                    "Unable to create room listing. Please try again.";
+            }
+
+            $stmt->close();
+        }
     }
 }
 
@@ -125,7 +263,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     Room Owner
                 </span>
 
-                <h1>Add New Room</h1>
+                <h1>
+                    Add New Room
+                </h1>
 
                 <p>
                     Add the details of your available accommodation.
@@ -142,7 +282,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         </div>
 
-
         <?php if ($error !== ""): ?>
 
             <div class="message error">
@@ -150,7 +289,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
         <?php endif; ?>
-
 
         <?php if ($success !== ""): ?>
 
@@ -160,8 +298,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         <?php endif; ?>
 
-
-        <form method="POST">
+        <form
+            method="POST"
+            enctype="multipart/form-data"
+        >
 
             <div class="form-grid">
 
@@ -182,7 +322,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 </div>
 
-
                 <div class="form-group">
 
                     <label for="location">
@@ -199,7 +338,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     >
 
                 </div>
-
 
                 <div class="form-group">
 
@@ -219,7 +357,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     >
 
                 </div>
-
 
                 <div class="form-group">
 
@@ -276,7 +413,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 </div>
 
-
                 <div class="form-group">
 
                     <label for="facilities">
@@ -292,7 +428,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     >
 
                 </div>
-
 
                 <div class="form-group full">
 
@@ -310,31 +445,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 </div>
 
-
                 <div class="form-group full">
 
-                    <label>
+                    <label for="images">
                         Room Images
                     </label>
 
-                    <div class="upload-box">
+                    <input
+                        type="file"
+                        id="images"
+                        name="images[]"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                    >
 
-                        <span>📷</span>
-
-                        <strong>
-                            Image upload will be added next
-                        </strong>
-
-                        <small>
-                            Multiple room photos will be supported.
-                        </small>
-
-                    </div>
+                    <small>
+                        Select up to 5 JPG, PNG, or WEBP images. Maximum 5 MB per image.
+                    </small>
 
                 </div>
 
             </div>
-
 
             <div class="form-actions">
 
