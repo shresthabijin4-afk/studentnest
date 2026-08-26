@@ -4,13 +4,115 @@ session_start();
 
 if (
     !isset($_SESSION["user_id"]) ||
+    !isset($_SESSION["user_role"]) ||
     $_SESSION["user_role"] !== "student"
 ) {
     header("Location: ../login.php");
     exit;
 }
 
-$userName = $_SESSION["user_name"];
+require_once __DIR__ . "/../config/database.php";
+
+$student_id = (int) $_SESSION["user_id"];
+$userName = $_SESSION["user_name"] ?? "Student";
+
+$rooms = [];
+
+$stmt = $conn->prepare(
+    "SELECT
+        r.id,
+        r.title,
+        r.location,
+        r.rent,
+        r.room_type,
+        r.facilities,
+        r.status,
+        (
+            SELECT ri.image_path
+            FROM room_images ri
+            WHERE ri.room_id = r.id
+            ORDER BY ri.is_primary DESC, ri.id ASC
+            LIMIT 1
+        ) AS image_path
+     FROM rooms r
+     WHERE r.status = 'available'
+     ORDER BY r.id DESC
+     LIMIT 6"
+);
+
+$stmt->execute();
+
+$result = $stmt->get_result();
+
+while ($row = $result->fetch_assoc()) {
+    $rooms[] = $row;
+}
+
+$stmt->close();
+
+$room_count_result = $conn->query(
+    "SELECT COUNT(*) AS total
+     FROM rooms
+     WHERE status = 'available'"
+);
+
+$available_rooms = (int) $room_count_result->fetch_assoc()["total"];
+
+$saved_rooms = 0;
+
+$saved_check = $conn->query(
+    "SHOW TABLES LIKE 'saved_rooms'"
+);
+
+if ($saved_check && $saved_check->num_rows > 0) {
+
+    $saved_stmt = $conn->prepare(
+        "SELECT COUNT(*) AS total
+         FROM saved_rooms
+         WHERE student_id = ?"
+    );
+
+    if ($saved_stmt) {
+        $saved_stmt->bind_param("i", $student_id);
+        $saved_stmt->execute();
+
+        $saved_result = $saved_stmt->get_result();
+
+        if ($saved_result->num_rows === 1) {
+            $saved_rooms = (int) $saved_result->fetch_assoc()["total"];
+        }
+
+        $saved_stmt->close();
+    }
+}
+
+$messages = 0;
+
+$message_check = $conn->query(
+    "SHOW TABLES LIKE 'messages'"
+);
+
+if ($message_check && $message_check->num_rows > 0) {
+
+    $message_stmt = $conn->prepare(
+        "SELECT COUNT(*) AS total
+         FROM messages
+         WHERE receiver_id = ?"
+    );
+
+    if ($message_stmt) {
+        $message_stmt->bind_param("i", $student_id);
+        $message_stmt->execute();
+
+        $message_result = $message_stmt->get_result();
+
+        if ($message_result->num_rows === 1) {
+            $messages = (int) $message_result->fetch_assoc()["total"];
+        }
+
+        $message_stmt->close();
+    }
+}
 
 ?>
 
@@ -30,7 +132,7 @@ $userName = $_SESSION["user_name"];
 
     <link
         rel="stylesheet"
-        href="../assests/css/student-dashboard.css"
+        href="../assests/css/student-dashboard.css?v=2"
     >
 
 </head>
@@ -39,7 +141,6 @@ $userName = $_SESSION["user_name"];
 
 <div class="dashboard">
 
-    <!-- SIDEBAR -->
     <aside class="sidebar">
 
         <div class="sidebar-brand">
@@ -55,40 +156,41 @@ $userName = $_SESSION["user_name"];
 
         </div>
 
-
         <nav class="sidebar-nav">
 
-            <a href="#" class="nav-link active">
+            <a href="dashboard.php" class="nav-link active">
                 <span>⌂</span>
                 Dashboard
             </a>
 
-            <a href="#" class="nav-link">
+            <a href="search-rooms.php" class="nav-link">
                 <span>⌕</span>
                 Find Rooms
             </a>
 
-            <a href="#" class="nav-link">
+            <a href="saved-rooms.php" class="nav-link">
                 <span>♡</span>
                 Saved Rooms
             </a>
 
-            <a href="#" class="nav-link">
+            <a href="messages.php" class="nav-link">
                 <span>✉</span>
                 Messages
             </a>
 
-            <a href="#" class="nav-link">
+            <a href="profile.php" class="nav-link">
                 <span>◉</span>
                 My Profile
             </a>
 
         </nav>
 
-
         <div class="sidebar-bottom">
 
-            <a href="../logout.php" class="logout-link">
+            <a
+                href="../logout.php"
+                class="logout-link"
+            >
                 <span>↪</span>
                 Logout
             </a>
@@ -97,11 +199,8 @@ $userName = $_SESSION["user_name"];
 
     </aside>
 
-
-    <!-- MAIN CONTENT -->
     <main class="main-content">
 
-        <!-- TOPBAR -->
         <header class="topbar">
 
             <div class="mobile-brand">
@@ -110,9 +209,12 @@ $userName = $_SESSION["user_name"];
 
             <div class="topbar-actions">
 
-                <button class="icon-button">
+                <a
+                    href="messages.php"
+                    class="icon-button"
+                >
                     🔔
-                </button>
+                </a>
 
                 <div class="profile-mini">
 
@@ -138,11 +240,8 @@ $userName = $_SESSION["user_name"];
 
         </header>
 
-
         <div class="content-wrapper">
 
-
-            <!-- WELCOME -->
             <section class="welcome-section">
 
                 <div>
@@ -164,31 +263,39 @@ $userName = $_SESSION["user_name"];
 
             </section>
 
-
-            <!-- SEARCH -->
             <section class="search-section">
 
-                <div class="search-box">
+                <form
+                    action="search-rooms.php"
+                    method="GET"
+                    class="search-form"
+                >
 
-                    <span class="search-icon">
-                        ⌕
-                    </span>
+                    <div class="search-box">
 
-                    <input
-                        type="text"
-                        placeholder="Search by location, area or room name..."
+                        <span class="search-icon">
+                            ⌕
+                        </span>
+
+                        <input
+                            type="text"
+                            name="search"
+                            placeholder="Search by location, area or room name..."
+                        >
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="search-button"
                     >
+                        Search Rooms
+                    </button>
 
-                </div>
-
-                <button class="search-button">
-                    Search Rooms
-                </button>
+                </form>
 
             </section>
 
-
-            <!-- QUICK STATS -->
             <section class="stats-grid">
 
                 <div class="stat-card">
@@ -204,13 +311,12 @@ $userName = $_SESSION["user_name"];
                         </span>
 
                         <strong>
-                            24
+                            <?= $available_rooms ?>
                         </strong>
 
                     </div>
 
                 </div>
-
 
                 <div class="stat-card">
 
@@ -225,13 +331,12 @@ $userName = $_SESSION["user_name"];
                         </span>
 
                         <strong>
-                            5
+                            <?= $saved_rooms ?>
                         </strong>
 
                     </div>
 
                 </div>
-
 
                 <div class="stat-card">
 
@@ -246,7 +351,7 @@ $userName = $_SESSION["user_name"];
                         </span>
 
                         <strong>
-                            3
+                            <?= $messages ?>
                         </strong>
 
                     </div>
@@ -255,8 +360,6 @@ $userName = $_SESSION["user_name"];
 
             </section>
 
-
-            <!-- ROOM SECTION -->
             <section class="rooms-section">
 
                 <div class="section-heading">
@@ -273,238 +376,115 @@ $userName = $_SESSION["user_name"];
 
                     </div>
 
-                    <a href="#">
+                    <a href="search-rooms.php">
                         View all →
                     </a>
 
                 </div>
 
+                <?php if (count($rooms) > 0): ?>
 
-                <div class="room-grid">
+                    <div class="room-grid">
 
+                        <?php foreach ($rooms as $room): ?>
 
-                    <!-- ROOM CARD 1 -->
-                    <article class="room-card">
+                            <article class="room-card">
 
-                        <div class="room-image">
+                                <div class="room-image">
 
-                            <img
-                                src="../assets/images/room-1.jpg"
-                                alt="Modern single room"
-                            >
+                                    <?php if (!empty($room["image_path"])): ?>
 
-                            <button class="favorite-button">
-                                ♡
-                            </button>
+                                        <img
+                                            src="../<?= htmlspecialchars($room["image_path"]) ?>"
+                                            alt="<?= htmlspecialchars($room["title"]) ?>"
+                                        >
 
-                            <span class="availability">
-                                Available
-                            </span>
+                                    <?php else: ?>
 
-                        </div>
+                                        <div class="no-image">
+                                            No Image
+                                        </div>
 
+                                    <?php endif; ?>
 
-                        <div class="room-body">
-
-                            <h3>
-                                Modern Single Room
-                            </h3>
-
-                            <p class="room-location">
-                                📍 Dharan, Sunsari
-                            </p>
-
-
-                            <div class="room-details">
-
-                                <span>
-                                    🛏 Single
-                                </span>
-
-                                <span>
-                                    📶 Wi-Fi
-                                </span>
-
-                                <span>
-                                    🍳 Kitchen
-                                </span>
-
-                            </div>
-
-
-                            <div class="room-footer">
-
-                                <div>
-
-                                    <span class="rent-label">
-                                        Monthly rent
+                                    <span class="availability">
+                                        Available
                                     </span>
-
-                                    <strong>
-                                        Rs. 8,000
-                                    </strong>
 
                                 </div>
 
-                                <a href="#" class="view-button">
-                                    View
-                                </a>
+                                <div class="room-body">
 
-                            </div>
+                                    <h3>
+                                        <?= htmlspecialchars($room["title"]) ?>
+                                    </h3>
 
-                        </div>
+                                    <p class="room-location">
+                                        📍 <?= htmlspecialchars($room["location"]) ?>
+                                    </p>
 
-                    </article>
+                                    <div class="room-details">
 
+                                        <span>
+                                            🛏 <?= htmlspecialchars($room["room_type"]) ?>
+                                        </span>
 
-                    <!-- ROOM CARD 2 -->
-                    <article class="room-card">
+                                        <?php if (!empty($room["facilities"])): ?>
 
-                        <div class="room-image">
+                                            <span>
+                                                <?= htmlspecialchars($room["facilities"]) ?>
+                                            </span>
 
-                            <img
-                                src="../assets/images/room-2.jpg"
-                                alt="Student room"
-                            >
+                                        <?php endif; ?>
 
-                            <button class="favorite-button">
-                                ♡
-                            </button>
+                                    </div>
 
-                            <span class="availability">
-                                Available
-                            </span>
+                                    <div class="room-footer">
 
-                        </div>
+                                        <div>
 
+                                            <span class="rent-label">
+                                                Monthly rent
+                                            </span>
 
-                        <div class="room-body">
+                                            <strong>
+                                                Rs. <?= number_format((float)$room["rent"]) ?>
+                                            </strong>
 
-                            <h3>
-                                Bright Student Room
-                            </h3>
+                                        </div>
 
-                            <p class="room-location">
-                                📍 Itahari, Sunsari
-                            </p>
+                                        <a
+                                            href="room-details.php?id=<?= (int)$room["id"] ?>"
+                                            class="view-button"
+                                        >
+                                            View
+                                        </a>
 
-
-                            <div class="room-details">
-
-                                <span>
-                                    🛏 Shared
-                                </span>
-
-                                <span>
-                                    📶 Wi-Fi
-                                </span>
-
-                                <span>
-                                    🚿 Bathroom
-                                </span>
-
-                            </div>
-
-
-                            <div class="room-footer">
-
-                                <div>
-
-                                    <span class="rent-label">
-                                        Monthly rent
-                                    </span>
-
-                                    <strong>
-                                        Rs. 6,500
-                                    </strong>
+                                    </div>
 
                                 </div>
 
-                                <a href="#" class="view-button">
-                                    View
-                                </a>
+                            </article>
 
-                            </div>
+                        <?php endforeach; ?>
 
-                        </div>
+                    </div>
 
-                    </article>
+                <?php else: ?>
 
+                    <div class="empty-state">
 
-                    <!-- ROOM CARD 3 -->
-                    <article class="room-card">
+                        <h3>
+                            No rooms available
+                        </h3>
 
-                        <div class="room-image">
+                        <p>
+                            There are currently no available room listings.
+                        </p>
 
-                            <img
-                                src="../assets/images/room-3.jpg"
-                                alt="Comfortable room"
-                            >
+                    </div>
 
-                            <button class="favorite-button">
-                                ♡
-                            </button>
-
-                            <span class="availability">
-                                Available
-                            </span>
-
-                        </div>
-
-
-                        <div class="room-body">
-
-                            <h3>
-                                Comfortable Room
-                            </h3>
-
-                            <p class="room-location">
-                                📍 Biratnagar, Morang
-                            </p>
-
-
-                            <div class="room-details">
-
-                                <span>
-                                    🛏 Single
-                                </span>
-
-                                <span>
-                                    📶 Wi-Fi
-                                </span>
-
-                                <span>
-                                    🛵 Parking
-                                </span>
-
-                            </div>
-
-
-                            <div class="room-footer">
-
-                                <div>
-
-                                    <span class="rent-label">
-                                        Monthly rent
-                                    </span>
-
-                                    <strong>
-                                        Rs. 7,500
-                                    </strong>
-
-                                </div>
-
-                                <a href="#" class="view-button">
-                                    View
-                                </a>
-
-                            </div>
-
-                        </div>
-
-                    </article>
-
-                </div>
+                <?php endif; ?>
 
             </section>
 
