@@ -1,4 +1,3 @@
-
 <?php
 
 session_start();
@@ -126,7 +125,7 @@ if ($check_table && $check_table->num_rows > 0) {
 </title>
 
 <link rel="stylesheet" href="../assests/css/student-pages.css?v=5">
-<link rel="stylesheet" href="../assests/css/room-details.css?v=1">
+<link rel="stylesheet" href="../assests/css/room-details.css?v=2">
 
 </head>
 
@@ -167,14 +166,34 @@ Student Portal
 
 <?php if (count($images) > 0): ?>
 
-<?php foreach ($images as $image): ?>
+<div class="gallery-main">
+
+<img
+    id="mainImage"
+    src="../<?= htmlspecialchars($images[0]["image_path"]) ?>"
+    alt="<?= htmlspecialchars($room["title"]) ?>"
+>
+
+</div>
+
+<?php if (count($images) > 1): ?>
+
+<div class="gallery-thumbs">
+
+<?php foreach ($images as $index => $image): ?>
 
 <img
     src="../<?= htmlspecialchars($image["image_path"]) ?>"
     alt="<?= htmlspecialchars($room["title"]) ?>"
+    class="<?= $index === 0 ? "active" : "" ?>"
+    onclick="document.getElementById('mainImage').src=this.src; document.querySelectorAll('.gallery-thumbs img').forEach(t => t.classList.remove('active')); this.classList.add('active');"
 >
 
 <?php endforeach; ?>
+
+</div>
+
+<?php endif; ?>
 
 <?php else: ?>
 
@@ -303,7 +322,7 @@ Save Room
 <?php endif; ?>
 
 <a
-    href="messages.php?owner_id=<?= (int)$room["owner_id"] ?>&room_id=<?= $room_id ?>"
+    href="send-message.php?room_id=<?= $room_id ?>"
     class="view-btn"
 >
 Contact Owner
@@ -320,4 +339,3 @@ Contact Owner
 </body>
 
 </html>
-```

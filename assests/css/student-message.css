@@ -1,0 +1,171 @@
+.message-page-card {
+    max-width: 850px;
+    margin: 30px auto;
+    background: #ffffff;
+    border: 1px solid #e3e8f0;
+    border-radius: 18px;
+    padding: 35px;
+    box-shadow: 0 8px 30px rgba(30, 50, 80, 0.06);
+}
+
+.message-card-header {
+    margin-bottom: 25px;
+}
+
+.message-label {
+    display: block;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+}
+
+.message-card-header h2 {
+    margin: 0 0 7px;
+    color: #172033;
+    font-size: 26px;
+}
+
+.message-card-header p {
+    margin: 0;
+    color: #687386;
+    font-size: 14px;
+}
+
+.owner-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #f6f9fd;
+    border: 1px solid #e7edf5;
+    border-radius: 12px;
+    padding: 15px 18px;
+    margin-bottom: 28px;
+}
+
+.owner-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: #eaf2ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.owner-info span {
+    display: block;
+    color: #7a8495;
+    font-size: 12px;
+    margin-bottom: 3px;
+}
+
+.owner-info strong {
+    display: block;
+    color: #1c273b;
+    font-size: 15px;
+}
+
+.message-form-group {
+    margin-bottom: 25px;
+}
+
+.message-form-group label {
+    display: block;
+    color: #263247;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 9px;
+}
+
+.message-form-group textarea {
+    width: 100%;
+    min-height: 180px;
+    box-sizing: border-box;
+    padding: 15px;
+    border: 1px solid #d9e0ea;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #1d293d;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.message-form-group textarea:focus {
+    border-color: #7aa7f8;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.message-form-group small {
+    display: block;
+    margin-top: 7px;
+    color: #7b8494;
+    font-size: 12px;
+}
+
+.message-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 5px;
+}
+
+.cancel-message-btn,
+.send-message-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 20px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+
+.cancel-message-btn {
+    background: #f2f5fa;
+    color: #4d596d;
+    border: 1px solid #e0e6ee;
+}
+
+.send-message-btn {
+    background: #2563eb;
+    color: #ffffff;
+    border: 1px solid #2563eb;
+    cursor: pointer;
+}
+
+.send-message-btn:hover {
+    background: #1d4ed8;
+}
+
+@media (max-width: 700px) {
+
+    .message-page-card {
+        margin: 20px 0;
+        padding: 22px;
+        border-radius: 14px;
+    }
+
+    .message-actions {
+        flex-direction: column-reverse;
+    }
+
+    .cancel-message-btn,
+    .send-message-btn {
+        width: 100%;
+    }
+
+}
+
